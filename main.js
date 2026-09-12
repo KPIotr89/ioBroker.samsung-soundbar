@@ -3,9 +3,16 @@
 const utils = require('@iobroker/adapter-core');
 const { SoundbarApi } = require('./lib/api');
 const { MqttBridge } = require('./lib/mqtt-bridge');
-const { OBJECTS, BUTTONS } = require('./lib/objects');
+const {
+    OBJECTS,
+    BUTTONS,
+    SOUND_MODES,
+    INPUT_SOURCES,
+    nameToNum,
+    numToName,
+} = require('./lib/objects');
 
-const STATE_KEYS = [ 'power', 'volume', 'mute', 'input', 'soundMode', 'codec' ];
+const STATE_KEYS = [ 'power', 'volume', 'mute', 'input', 'inputNum', 'soundMode', 'soundModeNum', 'codec' ];
 const MAX_BACKOFF = 60000;
 
 class SamsungSoundbar extends utils.Adapter {
@@ -143,12 +150,34 @@ class SamsungSoundbar extends utils.Adapter {
         this.schedulePoll(this.backoff);
     }
 
-    async publishState(state) {
+    /** Mirror both enums as numbers - Loxone handles analog values far better. */
+    static withNumericEnums(state) {
+        return {
+            ...state,
+            inputNum: nameToNum(INPUT_SOURCES, state.input),
+            soundModeNum: nameToNum(SOUND_MODES, state.soundMode),
+        };
+    }
+
+    async publishState(raw) {
+        const state = SamsungSoundbar.withNumericEnums(raw);
         for (const key of STATE_KEYS) {
             if (state[key] === undefined || Number.isNaN(state[key])) {
                 continue;
             }
             await this.setStateChangedAsync(`device.${key}`, { val: state[key], ack: true });
+        }
+        if (this.expected) {
+            const { key, value, raw } = this.expected;
+            const wanted = raw.endsWith('Num')
+                ? numToName(key === 'input' ? INPUT_SOURCES : SOUND_MODES, value)
+                : value;
+            if (wanted && state[key] !== wanted) {
+                this.log.warn(
+                    `Soundbar acknowledged ${key}=${wanted} but reports ${state[key]} - value not available for the current source`,
+                );
+            }
+            this.expected = null;
         }
         this.lastState = { ...this.lastState, ...state };
         if (this.mqtt) {
@@ -187,9 +216,25 @@ class SamsungSoundbar extends utils.Adapter {
             case 'input':
                 await this.api.setInput(value);
                 break;
+            case 'inputNum': {
+                const name = numToName(INPUT_SOURCES, value);
+                if (!name) {
+                    throw new Error(`inputNum ${value} is out of range 0-${INPUT_SOURCES.length - 1}`);
+                }
+                await this.api.setInput(name);
+                break;
+            }
             case 'soundMode':
                 await this.api.setSoundMode(value);
                 break;
+            case 'soundModeNum': {
+                const name = numToName(SOUND_MODES, value);
+                if (!name) {
+                    throw new Error(`soundModeNum ${value} is out of range 0-${SOUND_MODES.length - 1}`);
+                }
+                await this.api.setSoundMode(name);
+                break;
+            }
             case 'remoteKey':
                 await this.api.sendKey(value);
                 break;
@@ -197,6 +242,11 @@ class SamsungSoundbar extends utils.Adapter {
                 throw new Error(`unknown command "${key}"`);
         }
         this.log.debug(`command ${key}=${value} accepted`);
+        // Some values are acknowledged but silently ignored (a sound mode that
+        // does not exist for the current source). Verify on the next read.
+        if ([ 'input', 'inputNum', 'soundMode', 'soundModeNum' ].includes(key)) {
+            this.expected = { key: key.replace('Num', ''), value, raw: key };
+        }
         this.scheduleRefresh();
     }
 

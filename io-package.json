@@ -1,8 +1,13 @@
 {
   "common": {
     "name": "samsung-soundbar",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "news": {
+      "0.2.0": {
+        "en": "Numeric equivalents for input and sound mode; enum lists verified by read-back on HW-Q990F",
+        "de": "Numerische Entsprechungen fuer Eingang und Klangmodus; Enum-Listen per Rueckmeldung geprueft",
+        "pl": "Numeryczne odpowiedniki wejscia i trybu dzwieku; listy wartosci zweryfikowane odczytem na HW-Q990F"
+      },
       "0.1.1": {
         "en": "Accept broker addresses without a scheme; create objects before the host check",
         "de": "Broker-Adresse ohne Schema akzeptiert; Objekte vor der Host-Pruefung angelegt",

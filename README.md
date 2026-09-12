@@ -40,8 +40,10 @@ Albo w Adminie: *Adaptery → Instaluj z własnego URL → adres repozytorium Gi
 | `device.power` | boolean | rw | `powerOn` / `powerOff` |
 | `device.volume` | number 0–100 | rw | zapis ustawia wartość bezpośrednio |
 | `device.mute` | boolean | rw | |
-| `device.input` | string | rw | `E_ARC`, `ARC`, `HDMI1`, `HDMI2`, `D_IN`, `BT`, `WIFI`, `USB` |
-| `device.soundMode` | string | rw | `STANDARD`, `SURROUND`, `GAME`, `MUSIC`, `DTS_VIRTUAL_X`, `ADAPTIVE`, `NIGHT` |
+| `device.input` | string | rw | `E_ARC`, `HDMI_IN1`, `HDMI_IN2`, `D_IN`, `BT` |
+| `device.inputNum` | number | rw | 0 = `E_ARC`, 1 = `HDMI_IN1`, 2 = `HDMI_IN2`, 3 = `D_IN`, 4 = `BT`, −1 = nieznane |
+| `device.soundMode` | string | rw | `STANDARD`, `SURROUND`, `GAME`, `ADAPTIVE` |
+| `device.soundModeNum` | number | rw | 0 = `STANDARD`, 1 = `SURROUND`, 2 = `GAME`, 3 = `ADAPTIVE`, −1 = nieznane |
 | `device.codec` | string | r | np. `PCM`, `DOLBY_ATMOS` |
 | `control.remoteKey` | string | w | `VOL_UP`, `VOL_DOWN`, `MUTE`, `WOOFER_PLUS`, `WOOFER_MINUS` |
 | `control.volumeUp` / `volumeDown` / `muteToggle` / `wooferUp` / `wooferDown` | button | w | skróty do `remoteKey` |
@@ -61,7 +63,9 @@ samsung/soundbar/power        true
 samsung/soundbar/volume       11
 samsung/soundbar/mute         false
 samsung/soundbar/input        E_ARC
+samsung/soundbar/inputNum     0
 samsung/soundbar/soundMode    ADAPTIVE
+samsung/soundbar/soundModeNum 3
 samsung/soundbar/codec        PCM
 samsung/soundbar/state        {"power":true,"volume":11,...}   # opcjonalnie
 ```
@@ -75,7 +79,9 @@ samsung/soundbar/volume/set      14
 samsung/soundbar/power/set       false        # true/1/on/ON także działają
 samsung/soundbar/mute/set        toggle
 samsung/soundbar/input/set       E_ARC
-samsung/soundbar/soundMode/set   NIGHT
+samsung/soundbar/inputNum/set    1
+samsung/soundbar/soundMode/set   GAME
+samsung/soundbar/soundModeNum/set 2
 samsung/soundbar/remoteKey/set   WOOFER_PLUS
 samsung/soundbar/set             {"power":true,"volume":12,"soundMode":"MUSIC"}
 ```
@@ -86,8 +92,13 @@ jeśli soundbar odrzuci wartość, topic wróci do rzeczywistości zamiast kłam
 ### Loxone
 
 W Loxone MQTT Gateway wystarczy subskrypcja `samsung/soundbar/#`. Dla wirtualnych wejść
-najwygodniejszy jest format `1/0`. Komendy wysyłasz wirtualnym wyjściem MQTT na
-`samsung/soundbar/volume/set` z payloadem `<v>`.
+cyfrowych najwygodniejszy jest format `1/0` (konfiguracja instancji → MQTT).
+
+Wejście i tryb dźwięku mają odpowiedniki numeryczne (`inputNum`, `soundModeNum`), więc
+wpinasz je wprost w wirtualne wejścia analogowe i wybierasz np. selektorem stanów —
+bez parsowania tekstu w Loxone. Komendy wysyłasz wirtualnym wyjściem MQTT na
+`samsung/soundbar/inputNum/set` z payloadem `<n>`. Wartość −1 oznacza, że soundbar
+zgłosił nazwę spoza listy.
 
 ## Protokół (co udało się ustalić)
 
@@ -106,6 +117,12 @@ curl -sk -X POST https://192.168.0.214:1516/ \
 - nieznana metoda → `-32601 Method not found`
 - `volumeControl` wymaga liczby, nie stringa (string → `-32602 Invalid params`)
 - błędna wartość enum → `{"success":false}` zamiast wyjątku
+- część wartości jest **potwierdzana, ale ignorowana**: `MUSIC`, `DTS_VIRTUAL_X` i `NIGHT`
+  zwracają `success:true`, a tryb się nie zmienia; `ARC` zwija się do `E_ARC` (ten sam port).
+  Dlatego adapter po każdej komendzie odczytuje stan i loguje ostrzeżenie, gdy urządzenie
+  zostało przy starej wartości
+- nazwy wejść HDMI to `HDMI_IN1` / `HDMI_IN2` — `HDMI1`, `HDMI2`, `WIFI`, `USB`, `OPTICAL`
+  są odrzucane
 
 Metody: `createAccessToken`, `powerControl`, `getVolume`, `volumeControl`, `getMute`,
 `muteControl`, `inputSelectControl`, `soundModeControl`, `remoteKeyControl`, `getCodec`,

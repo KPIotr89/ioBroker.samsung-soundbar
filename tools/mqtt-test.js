@@ -8,6 +8,7 @@
  */
 
 const { MqttBridge } = require('../lib/mqtt-bridge');
+const { nameToNum, numToName, SOUND_MODES, INPUT_SOURCES } = require('../lib/objects');
 
 const log = { debug() {}, info() {}, warn() {}, error() {} };
 let failures = 0;
@@ -86,6 +87,31 @@ function makeBridge(config) {
     check('json command object handled', values('soundMode')[0] === 'NIGHT' && values('volume')[1] === 9);
     check('unknown key ignored', commands.every(c => c[0] !== 'nonsense'));
     check('unparsable number ignored', values('volume').length === 2);
+}
+
+// ---- numeric enum mapping ---------------------------------------------------
+{
+    check('sound mode name -> number', nameToNum(SOUND_MODES, 'ADAPTIVE') === 3 && nameToNum(SOUND_MODES, 'STANDARD') === 0);
+    check('input name -> number', nameToNum(INPUT_SOURCES, 'E_ARC') === 0 && nameToNum(INPUT_SOURCES, 'BT') === 4);
+    check('unknown name -> -1', nameToNum(SOUND_MODES, 'MOVIE') === -1);
+    check('number -> name', numToName(SOUND_MODES, 2) === 'GAME' && numToName(INPUT_SOURCES, 1) === 'HDMI_IN1');
+    check('out of range -> null', numToName(SOUND_MODES, 99) === null && numToName(SOUND_MODES, -1) === null);
+    check('round trip', numToName(INPUT_SOURCES, nameToNum(INPUT_SOURCES, 'D_IN')) === 'D_IN');
+}
+
+// ---- numeric enum over MQTT -------------------------------------------------
+{
+    const { bridge, commands, published } = makeBridge({});
+    bridge._onMessage('samsung/test/soundModeNum/set', '3');
+    bridge._onMessage('samsung/test/inputNum/set', '0');
+    bridge._onMessage('samsung/test/soundModeNum/set', 'NIGHT');
+    check('soundModeNum parsed as number', commands[0][0] === 'soundModeNum' && commands[0][1] === 3);
+    check('inputNum parsed as number', commands[1][0] === 'inputNum' && commands[1][1] === 0);
+    check('non-numeric enum payload ignored', commands.length === 2);
+
+    bridge.publishSnapshot({ soundMode: 'ADAPTIVE', soundModeNum: 3, input: 'E_ARC', inputNum: 0 });
+    const map = Object.fromEntries(published);
+    check('numeric enums published', map['samsung/test/soundModeNum'] === '3' && map['samsung/test/inputNum'] === '0');
 }
 
 // ---- broker url normalisation ----------------------------------------------

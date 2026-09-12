@@ -16,7 +16,7 @@ Zmierzona latencja pojedynczego wywołania: ~40 ms.
 
 ```bash
 cd /opt/iobroker
-npm i https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar/tarball/main
+npm i https://github.com/KPIotr89/ioBroker.samsung-soundbar/tarball/main
 iobroker add samsung-soundbar
 ```
 

@@ -26,8 +26,8 @@
     "connectionType": "local",
     "dataSource": "poll",
     "icon": "samsung-soundbar.png",
-    "extIcon": "https://raw.githubusercontent.com/piotrkalbarczyk/ioBroker.samsung-soundbar/main/admin/samsung-soundbar.png",
-    "readme": "https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar/blob/main/README.md",
+    "extIcon": "https://raw.githubusercontent.com/KPIotr89/ioBroker.samsung-soundbar/main/admin/samsung-soundbar.png",
+    "readme": "https://github.com/KPIotr89/ioBroker.samsung-soundbar/blob/main/README.md",
     "loglevel": "info",
     "type": "multimedia",
     "keywords": [

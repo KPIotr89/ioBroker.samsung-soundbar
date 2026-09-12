@@ -28,6 +28,12 @@ class SamsungSoundbar extends utils.Adapter {
     // ------------------------------------------------------------------ setup
 
     async onReady() {
+        // Objects first: the adapter may stop right after this and ioBroker still
+        // expects the info channel to exist.
+        await this.createObjects();
+        await this.setStateAsync('info.connection', { val: false, ack: true });
+        await this.setStateAsync('info.mqttConnection', { val: false, ack: true });
+
         const host = (this.config.host || '').trim();
         if (!host) {
             this.log.error('No soundbar IP address configured - stopping.');
@@ -35,10 +41,6 @@ class SamsungSoundbar extends utils.Adapter {
         }
 
         this.pollInterval = Math.max(2, Number(this.config.pollInterval) || 5) * 1000;
-
-        await this.createObjects();
-        await this.setStateAsync('info.connection', { val: false, ack: true });
-        await this.setStateAsync('info.mqttConnection', { val: false, ack: true });
 
         this.api = new SoundbarApi({
             host,

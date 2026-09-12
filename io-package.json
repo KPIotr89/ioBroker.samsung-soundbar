@@ -1,8 +1,13 @@
 {
   "common": {
     "name": "samsung-soundbar",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "news": {
+      "0.1.1": {
+        "en": "Accept broker addresses without a scheme; create objects before the host check",
+        "de": "Broker-Adresse ohne Schema akzeptiert; Objekte vor der Host-Pruefung angelegt",
+        "pl": "Adres brokera bez schematu jest akceptowany; obiekty tworzone przed sprawdzeniem IP"
+      },
       "0.1.0": {
         "en": "Initial release: local IP control (power, volume, mute, input, sound mode, remote keys) with native MQTT bridge",
         "de": "Erste Version: lokale IP-Steuerung mit nativer MQTT-Bruecke",

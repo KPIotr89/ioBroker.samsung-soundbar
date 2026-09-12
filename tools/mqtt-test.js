@@ -88,5 +88,15 @@ function makeBridge(config) {
     check('unparsable number ignored', values('volume').length === 2);
 }
 
+// ---- broker url normalisation ----------------------------------------------
+{
+    const n = MqttBridge.normaliseUrl;
+    check('bare host gets mqtt:// prefix', n('192.168.0.5') === 'mqtt://192.168.0.5');
+    check('host:port gets prefix', n(' 192.168.0.5:1883 ') === 'mqtt://192.168.0.5:1883');
+    check('full url untouched', n('mqtts://broker.lan:8883') === 'mqtts://broker.lan:8883');
+    check('ws url untouched', n('ws://broker.lan:9001') === 'ws://broker.lan:9001');
+    check('empty stays empty', n('  ') === '');
+}
+
 console.log(failures ? `\n${failures} FAILED` : '\nall green');
 process.exit(failures ? 1 : 0);

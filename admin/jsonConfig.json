@@ -1,0 +1,172 @@
+{
+  "i18n": false,
+  "type": "tabs",
+  "items": {
+    "tabConnection": {
+      "type": "panel",
+      "label": "Połączenie",
+      "items": {
+        "host": {
+          "type": "text",
+          "label": "Adres IP soundbara",
+          "help": "np. 192.168.0.214 — w ustawieniach soundbara musi być włączone sterowanie IP",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "port": {
+          "type": "number",
+          "label": "Port",
+          "min": 1,
+          "max": 65535,
+          "default": 1516,
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "pollInterval": {
+          "type": "number",
+          "label": "Odpytywanie [s]",
+          "help": "Soundbar nie wysyła powiadomień — stan jest odpytywany",
+          "min": 2,
+          "max": 600,
+          "default": 5,
+          "newLine": true,
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "timeout": {
+          "type": "number",
+          "label": "Timeout [s]",
+          "min": 2,
+          "max": 60,
+          "default": 8,
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "_hint": {
+          "type": "staticText",
+          "newLine": true,
+          "sm": 12,
+          "text": "Adapter używa lokalnego API JSON-RPC po HTTPS (certyfikat self-signed nie jest weryfikowany). Potwierdzone modele: HW-Q990F, seria D (2024) i nowsze."
+        }
+      }
+    },
+    "tabMqtt": {
+      "type": "panel",
+      "label": "MQTT",
+      "items": {
+        "mqttEnabled": {
+          "type": "checkbox",
+          "label": "Włącz most MQTT",
+          "default": false,
+          "sm": 12,
+          "md": 4
+        },
+        "mqttUrl": {
+          "type": "text",
+          "label": "Broker",
+          "help": "mqtt://host:1883 lub mqtts://host:8883",
+          "default": "mqtt://127.0.0.1:1883",
+          "hidden": "!data.mqttEnabled",
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "mqttClientId": {
+          "type": "text",
+          "label": "Client ID",
+          "help": "puste = generowany automatycznie",
+          "hidden": "!data.mqttEnabled",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "mqttUser": {
+          "type": "text",
+          "label": "Użytkownik",
+          "hidden": "!data.mqttEnabled",
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "mqttPassword": {
+          "type": "password",
+          "label": "Hasło",
+          "repeat": false,
+          "visible": true,
+          "hidden": "!data.mqttEnabled",
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "mqttBaseTopic": {
+          "type": "text",
+          "label": "Topic bazowy",
+          "default": "samsung/soundbar",
+          "hidden": "!data.mqttEnabled",
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
+        },
+        "mqttBoolFormat": {
+          "type": "select",
+          "label": "Format wartości logicznych",
+          "default": "true/false",
+          "hidden": "!data.mqttEnabled",
+          "options": [
+            { "label": "true / false", "value": "true/false" },
+            { "label": "1 / 0", "value": "1/0" },
+            { "label": "ON / OFF", "value": "ON/OFF" }
+          ],
+          "sm": 12,
+          "md": 3,
+          "lg": 2
+        },
+        "mqttQos": {
+          "type": "select",
+          "label": "QoS",
+          "default": 0,
+          "hidden": "!data.mqttEnabled",
+          "options": [
+            { "label": "0", "value": 0 },
+            { "label": "1", "value": 1 },
+            { "label": "2", "value": 2 }
+          ],
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "mqttRetain": {
+          "type": "checkbox",
+          "label": "Retain",
+          "default": true,
+          "hidden": "!data.mqttEnabled",
+          "newLine": true,
+          "sm": 6,
+          "md": 3
+        },
+        "mqttPublishJson": {
+          "type": "checkbox",
+          "label": "Dodatkowy topic JSON (<base>/state)",
+          "default": false,
+          "hidden": "!data.mqttEnabled",
+          "sm": 6,
+          "md": 4
+        },
+        "_topics": {
+          "type": "staticText",
+          "newLine": true,
+          "hidden": "!data.mqttEnabled",
+          "sm": 12,
+          "text": "Publikacja: <base>/power, /volume, /mute, /input, /soundMode, /codec, /connected. Komendy: <base>/<klucz>/set (power, volume, mute, input, soundMode, remoteKey) lub <base>/set z obiektem JSON."
+        }
+      }
+    }
+  }
+}

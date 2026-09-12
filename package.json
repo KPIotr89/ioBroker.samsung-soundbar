@@ -1,0 +1,47 @@
+{
+  "name": "iobroker.samsung-soundbar",
+  "version": "0.1.0",
+  "description": "Local control of Samsung soundbars (2024+ D/F series) over the IP-control JSON-RPC API, with a native MQTT bridge",
+  "author": {
+    "name": "Piotr Kalbarczyk",
+    "email": "kalbarczyk.piotr@gmail.com"
+  },
+  "homepage": "https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar",
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "samsung",
+    "soundbar",
+    "mqtt",
+    "loxone",
+    "smarthome"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.4.3",
+    "mqtt": "^5.15.2"
+  },
+  "main": "main.js",
+  "files": [
+    "admin/",
+    "lib/",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
+  "scripts": {
+    "lint": "node --check main.js && node --check lib/api.js && node --check lib/mqtt-bridge.js && node --check lib/objects.js",
+    "test": "npm run lint && node tools/mqtt-test.js",
+    "smoke": "node tools/smoke-test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar/issues"
+  },
+  "readmeFilename": "README.md"
+}

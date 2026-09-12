@@ -1,0 +1,81 @@
+{
+  "common": {
+    "name": "samsung-soundbar",
+    "version": "0.1.0",
+    "news": {
+      "0.1.0": {
+        "en": "Initial release: local IP control (power, volume, mute, input, sound mode, remote keys) with native MQTT bridge",
+        "de": "Erste Version: lokale IP-Steuerung mit nativer MQTT-Bruecke",
+        "pl": "Pierwsza wersja: lokalne sterowanie IP (zasilanie, glosnosc, wyciszenie, wejscie, tryb dzwieku, klawisze pilota) z natywnym mostem MQTT"
+      }
+    },
+    "titleLang": {
+      "en": "Samsung Soundbar (local)",
+      "de": "Samsung Soundbar (lokal)",
+      "pl": "Samsung Soundbar (lokalnie)"
+    },
+    "desc": {
+      "en": "Controls Samsung soundbars locally over the IP-control API on port 1516 and mirrors every state to MQTT.",
+      "de": "Steuert Samsung Soundbars lokal ueber die IP-Control-API auf Port 1516 und spiegelt alle Zustaende nach MQTT.",
+      "pl": "Steruje soundbarami Samsung lokalnie przez API IP na porcie 1516 i publikuje wszystkie stany do MQTT."
+    },
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "enabled": true,
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "poll",
+    "icon": "samsung-soundbar.png",
+    "extIcon": "https://raw.githubusercontent.com/piotrkalbarczyk/ioBroker.samsung-soundbar/main/admin/samsung-soundbar.png",
+    "readme": "https://github.com/piotrkalbarczyk/ioBroker.samsung-soundbar/blob/main/README.md",
+    "loglevel": "info",
+    "type": "multimedia",
+    "keywords": [
+      "samsung",
+      "soundbar",
+      "mqtt",
+      "loxone"
+    ],
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=6.13.16"
+      }
+    ],
+    "authors": [
+      "Piotr Kalbarczyk <kalbarczyk.piotr@gmail.com>"
+    ],
+    "license": "MIT"
+  },
+  "encryptedNative": [
+    "mqttPassword"
+  ],
+  "protectedNative": [
+    "mqttPassword"
+  ],
+  "native": {
+    "host": "",
+    "port": 1516,
+    "pollInterval": 5,
+    "timeout": 8,
+    "mqttEnabled": false,
+    "mqttUrl": "mqtt://127.0.0.1:1883",
+    "mqttUser": "",
+    "mqttPassword": "",
+    "mqttClientId": "",
+    "mqttBaseTopic": "samsung/soundbar",
+    "mqttQos": 0,
+    "mqttRetain": true,
+    "mqttBoolFormat": "true/false",
+    "mqttPublishJson": false
+  },
+  "objects": [],
+  "instanceObjects": []
+}

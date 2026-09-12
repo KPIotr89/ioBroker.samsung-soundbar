@@ -1,0 +1,92 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * Offline unit test of the MQTT bridge: payload formatting, change detection and
+ * command parsing. No broker and no soundbar needed.
+ *   node tools/mqtt-test.js
+ */
+
+const { MqttBridge } = require('../lib/mqtt-bridge');
+
+const log = { debug() {}, info() {}, warn() {}, error() {} };
+let failures = 0;
+
+function check(name, cond) {
+    console.log(`${cond ? 'ok  ' : 'FAIL'} ${name}`);
+    if (!cond) {
+        failures++;
+    }
+}
+
+function makeBridge(config) {
+    const published = [];
+    const commands = [];
+    const bridge = new MqttBridge({
+        config: { mqttUrl: 'mqtt://127.0.0.1:1883', mqttBaseTopic: 'samsung/test', ...config },
+        log,
+        onCommand: (key, value) => commands.push([ key, value ]),
+    });
+    // stub the network layer
+    bridge.connected = true;
+    bridge.client = { publish: (topic, payload) => published.push([ topic, payload ]) };
+    return { bridge, published, commands };
+}
+
+// ---- publishing -------------------------------------------------------------
+{
+    const { bridge, published } = makeBridge({ mqttBoolFormat: '1/0', mqttPublishJson: true });
+    const snapshot = { power: true, volume: 11, mute: false, input: 'E_ARC', soundMode: 'ADAPTIVE', codec: 'PCM' };
+    bridge.publishSnapshot(snapshot);
+    const map = Object.fromEntries(published);
+
+    check('boolean format 1/0', map['samsung/test/power'] === '1' && map['samsung/test/mute'] === '0');
+    check('number published as plain value', map['samsung/test/volume'] === '11');
+    check('string published verbatim', map['samsung/test/input'] === 'E_ARC');
+    check('json topic present', JSON.parse(map['samsung/test/state']).soundMode === 'ADAPTIVE');
+
+    const countBefore = published.length;
+    bridge.publishSnapshot(snapshot);
+    check('unchanged values are not republished', published.length === countBefore);
+
+    bridge.publishSnapshot({ ...snapshot, volume: 12 });
+    const volumeMsgs = published.filter(p => p[0] === 'samsung/test/volume');
+    check('changed value is republished', volumeMsgs.length === 2 && volumeMsgs[1][1] === '12');
+    check('only the changed key went out', published.length === countBefore + 2); // volume + json
+}
+
+// ---- boolean formats --------------------------------------------------------
+{
+    const { bridge, published } = makeBridge({ mqttBoolFormat: 'ON/OFF' });
+    bridge.publish('power', true);
+    check('ON/OFF format', published[0][1] === 'ON');
+}
+{
+    const { bridge, published } = makeBridge({});
+    bridge.publish('power', false);
+    check('default true/false format', published[0][1] === 'false');
+}
+
+// ---- commands ---------------------------------------------------------------
+{
+    const { bridge, commands } = makeBridge({});
+    bridge._onMessage('samsung/test/volume/set', '14');
+    bridge._onMessage('samsung/test/power/set', 'ON');
+    bridge._onMessage('samsung/test/mute/set', 'toggle');
+    bridge._onMessage('samsung/test/remoteKey/set', 'WOOFER_PLUS');
+    bridge._onMessage('samsung/test/set', JSON.stringify({ soundMode: 'NIGHT', volume: 9 }));
+    bridge._onMessage('samsung/test/nonsense/set', 'x');
+    bridge._onMessage('samsung/test/volume/set', 'abc');
+
+    const values = key => commands.filter(c => c[0] === key).map(c => c[1]);
+    check('volume parsed as number', values('volume')[0] === 14);
+    check('power parsed as boolean', values('power')[0] === true);
+    check('mute toggle passed through', values('mute')[0] === 'toggle');
+    check('remote key passed through', values('remoteKey')[0] === 'WOOFER_PLUS');
+    check('json command object handled', values('soundMode')[0] === 'NIGHT' && values('volume')[1] === 9);
+    check('unknown key ignored', commands.every(c => c[0] !== 'nonsense'));
+    check('unparsable number ignored', values('volume').length === 2);
+}
+
+console.log(failures ? `\n${failures} FAILED` : '\nall green');
+process.exit(failures ? 1 : 0);

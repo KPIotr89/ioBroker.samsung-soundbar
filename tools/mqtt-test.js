@@ -8,7 +8,8 @@
  */
 
 const { MqttBridge } = require('../lib/mqtt-bridge');
-const { nameToNum, numToName, SOUND_MODES, INPUT_SOURCES } = require('../lib/objects');
+const { nameToNum, numToName, SOUND_MODES, INPUT_SOURCES, CODECS } = require('../lib/objects');
+const wol = require('../lib/wol');
 
 const log = { debug() {}, info() {}, warn() {}, error() {} };
 let failures = 0;
@@ -112,6 +113,29 @@ function makeBridge(config) {
     bridge.publishSnapshot({ soundMode: 'ADAPTIVE', soundModeNum: 3, input: 'E_ARC', inputNum: 0 });
     const map = Object.fromEntries(published);
     check('numeric enums published', map['samsung/test/soundModeNum'] === '3' && map['samsung/test/inputNum'] === '0');
+}
+
+// ---- volumeStep + codec over MQTT -------------------------------------------
+{
+    const { bridge, commands } = makeBridge({});
+    bridge._onMessage('samsung/test/volumeStep/set', '3');
+    bridge._onMessage('samsung/test/volumeStep/set', '-2');
+    bridge._onMessage('samsung/test/volumeStep/set', '+4');
+    check('positive step', commands[0][0] === 'volumeStep' && commands[0][1] === 3);
+    check('negative step', commands[1][1] === -2);
+    check('explicit plus sign', commands[2][1] === 4);
+    check('codec numbering stable', nameToNum(CODECS, 'PCM') === 0 && numToName(CODECS, 4) === 'DOLBY_ATMOS');
+    check('unknown codec -> -1', nameToNum(CODECS, 'SOMETHING_NEW') === -1);
+}
+
+// ---- wake-on-lan packet -----------------------------------------------------
+{
+    const packet = wol.magicPacket('8c:79:f5:aa:bb:cc');
+    check('magic packet is 102 bytes', packet.length === 102);
+    check('magic packet header', packet.subarray(0, 6).every(b => b === 0xff));
+    check('mac repeated 16 times', packet.subarray(6, 12).toString('hex') === '8c79f5aabbcc'
+        && packet.subarray(96, 102).toString('hex') === '8c79f5aabbcc');
+    check('mac validation', wol.isValidMac('8C-79-F5-AA-BB-CC') && !wol.isValidMac('8c:79:f5:aa:bb') && !wol.isValidMac(''));
 }
 
 // ---- broker url normalisation ----------------------------------------------

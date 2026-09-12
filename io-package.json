@@ -1,8 +1,13 @@
 {
   "common": {
     "name": "samsung-soundbar",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "Volume write throttling and max volume cap, adaptive polling, info.lastUpdate, codecNum, volumeStep, Wake-on-LAN",
+        "de": "Gedrosselte Lautstaerke-Schreibvorgaenge und Maximalwert, adaptives Polling, info.lastUpdate, codecNum, volumeStep, Wake-on-LAN",
+        "pl": "Throttling zapisu glosnosci i limit maksymalny, adaptacyjny polling, info.lastUpdate, codecNum, volumeStep, Wake-on-LAN"
+      },
       "0.2.0": {
         "en": "Numeric equivalents for input and sound mode; enum lists verified by read-back on HW-Q990F",
         "de": "Numerische Entsprechungen fuer Eingang und Klangmodus; Enum-Listen per Rueckmeldung geprueft",
@@ -84,7 +89,12 @@
     "mqttQos": 0,
     "mqttRetain": true,
     "mqttBoolFormat": "true/false",
-    "mqttPublishJson": false
+    "mqttPublishJson": false,
+    "pollIntervalStandby": 30,
+    "maxVolume": 100,
+    "wolEnabled": false,
+    "wolMac": "",
+    "wolBroadcast": ""
   },
   "objects": [],
   "instanceObjects": []

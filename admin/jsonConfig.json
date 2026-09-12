@@ -46,6 +46,56 @@
           "md": 3,
           "lg": 2
         },
+        "pollIntervalStandby": {
+          "type": "number",
+          "label": "Odpytywanie w standby [s]",
+          "help": "Rzadsze odpytywanie, gdy soundbar jest wyłączony",
+          "min": 5,
+          "max": 3600,
+          "default": 30,
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "maxVolume": {
+          "type": "number",
+          "label": "Maksymalna głośność",
+          "help": "Twardy limit dla komend z automatyki — chroni przed sceną ustawiającą 80",
+          "min": 1,
+          "max": 100,
+          "default": 100,
+          "newLine": true,
+          "sm": 6,
+          "md": 3,
+          "lg": 2
+        },
+        "wolEnabled": {
+          "type": "checkbox",
+          "label": "Wake-on-LAN przy włączaniu",
+          "default": false,
+          "newLine": true,
+          "sm": 12,
+          "md": 4,
+          "help": "W standby soundbar zamyka port 1516 — magic packet to jedyna droga"
+        },
+        "wolMac": {
+          "type": "text",
+          "label": "Adres MAC soundbara",
+          "help": "np. 8c:79:f5:aa:bb:cc",
+          "hidden": "!data.wolEnabled",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
+        "wolBroadcast": {
+          "type": "text",
+          "label": "Adres rozgłoszeniowy",
+          "help": "puste = 255.255.255.255",
+          "hidden": "!data.wolEnabled",
+          "sm": 12,
+          "md": 4,
+          "lg": 3
+        },
         "_hint": {
           "type": "staticText",
           "newLine": true,
@@ -120,9 +170,18 @@
           "default": "true/false",
           "hidden": "!data.mqttEnabled",
           "options": [
-            { "label": "true / false", "value": "true/false" },
-            { "label": "1 / 0", "value": "1/0" },
-            { "label": "ON / OFF", "value": "ON/OFF" }
+            {
+              "label": "true / false",
+              "value": "true/false"
+            },
+            {
+              "label": "1 / 0",
+              "value": "1/0"
+            },
+            {
+              "label": "ON / OFF",
+              "value": "ON/OFF"
+            }
           ],
           "sm": 12,
           "md": 3,
@@ -134,9 +193,18 @@
           "default": 0,
           "hidden": "!data.mqttEnabled",
           "options": [
-            { "label": "0", "value": 0 },
-            { "label": "1", "value": 1 },
-            { "label": "2", "value": 2 }
+            {
+              "label": "0",
+              "value": 0
+            },
+            {
+              "label": "1",
+              "value": 1
+            },
+            {
+              "label": "2",
+              "value": 2
+            }
           ],
           "sm": 6,
           "md": 3,

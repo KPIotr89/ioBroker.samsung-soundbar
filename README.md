@@ -29,7 +29,10 @@ Albo w Adminie: *Adaptery → Instaluj z własnego URL → adres repozytorium Gi
 | Adres IP soundbara | — | np. `192.168.0.214` |
 | Port | `1516` | port API IP-control |
 | Odpytywanie | `5 s` | API nie ma powiadomień push, stan jest odpytywany |
+| Odpytywanie w standby | `30 s` | gdy soundbar jest wyłączony |
 | Timeout | `8 s` | limit pojedynczego żądania HTTPS |
+| Maksymalna głośność | `100` | twardy limit dla komend z automatyki |
+| Wake-on-LAN | wył. | MAC soundbara; w standby port 1516 jest zamknięty |
 | Most MQTT | wył. | publikacja stanu i przyjmowanie komend |
 | Format wartości logicznych | `true/false` | do wyboru `1/0` albo `ON/OFF` (wygodne dla Loxone) |
 
@@ -45,11 +48,14 @@ Albo w Adminie: *Adaptery → Instaluj z własnego URL → adres repozytorium Gi
 | `device.soundMode` | string | rw | `STANDARD`, `SURROUND`, `GAME`, `ADAPTIVE` |
 | `device.soundModeNum` | number | rw | 0 = `STANDARD`, 1 = `SURROUND`, 2 = `GAME`, 3 = `ADAPTIVE`, −1 = nieznane |
 | `device.codec` | string | r | np. `PCM`, `DOLBY_ATMOS` |
+| `device.codecNum` | number | r | 0 = `PCM`, 1 = `DOLBY_DIGITAL`, 2 = `DOLBY_DIGITAL_PLUS`, 3 = `DOLBY_TRUEHD`, 4 = `DOLBY_ATMOS`, 5 = `DTS`, 6 = `DTS_HD`, 7 = `DTS_X`, 8 = `AAC`, 9 = `MP3`, −1 = nieznany (trafia do logu) |
+| `control.volumeStep` | number | w | zmiana względna, np. `3` albo `-2` |
 | `control.remoteKey` | string | w | `VOL_UP`, `VOL_DOWN`, `MUTE`, `WOOFER_PLUS`, `WOOFER_MINUS` |
 | `control.volumeUp` / `volumeDown` / `muteToggle` / `wooferUp` / `wooferDown` | button | w | skróty do `remoteKey` |
 | `info.connection` | boolean | r | soundbar osiągalny |
 | `info.mqttConnection` | boolean | r | broker osiągalny |
 | `info.identifier` | string | r | np. `22_AV_HW-Q990F` |
+| `info.lastUpdate` | number | r | czas ostatniego udanego odczytu (unix, s) — watchdog dla Loxone |
 
 ## MQTT
 
@@ -67,6 +73,8 @@ samsung/soundbar/inputNum     0
 samsung/soundbar/soundMode    ADAPTIVE
 samsung/soundbar/soundModeNum 3
 samsung/soundbar/codec        PCM
+samsung/soundbar/codecNum     0
+samsung/soundbar/lastUpdate   1757707200
 samsung/soundbar/state        {"power":true,"volume":11,...}   # opcjonalnie
 ```
 
@@ -82,12 +90,17 @@ samsung/soundbar/input/set       E_ARC
 samsung/soundbar/inputNum/set    1
 samsung/soundbar/soundMode/set   GAME
 samsung/soundbar/soundModeNum/set 2
+samsung/soundbar/volumeStep/set  -2
 samsung/soundbar/remoteKey/set   WOOFER_PLUS
 samsung/soundbar/set             {"power":true,"volume":12,"soundMode":"MUSIC"}
 ```
 
 Po każdej komendzie adapter odpytuje urządzenie po 700 ms i publikuje faktyczny stan —
 jeśli soundbar odrzuci wartość, topic wróci do rzeczywistości zamiast kłamać.
+
+Zapisy głośności są zbierane w oknie 200 ms i wysyłana jest tylko ostatnia wartość, więc
+suwak albo enkoder w Loxone nie zaleje urządzenia żądaniami (soundbar gubi równoległe
+wywołania i odpowiada HTTP 400).
 
 ### Loxone
 
@@ -99,6 +112,13 @@ wpinasz je wprost w wirtualne wejścia analogowe i wybierasz np. selektorem stan
 bez parsowania tekstu w Loxone. Komendy wysyłasz wirtualnym wyjściem MQTT na
 `samsung/soundbar/inputNum/set` z payloadem `<n>`. Wartość −1 oznacza, że soundbar
 zgłosił nazwę spoza listy.
+
+`info.lastUpdate` to unix timestamp ostatniego udanego odczytu — w Loxone wystarczy blok
+porównania z czasem systemowym, żeby dostać alarm, gdy soundbar przestanie odpowiadać.
+`connected` (LWT) wyłapuje tylko pad adaptera, nie zawieszenie urządzenia.
+
+Do ściszania/podgłaśniania przyciskiem najwygodniejszy jest `volumeStep` — wysyłasz `3`
+albo `-2` zamiast liczyć wartość docelową w bloku.
 
 ## Protokół (co udało się ustalić)
 
@@ -130,6 +150,13 @@ Metody: `createAccessToken`, `powerControl`, `getVolume`, `volumeControl`, `getM
 
 Nie istnieją (sprawdzone): night mode jako osobna metoda, voice amplifier, poziomy
 pojedynczych głośników, EQ. Subwoofer tylko krokowo przez `WOOFER_PLUS` / `WOOFER_MINUS`.
+
+## Standby i włączanie
+
+W standby soundbar zamyka port 1516, więc `power/set true` nie ma jak dojść. Adapter
+wykrywa ten przypadek i — jeśli Wake-on-LAN jest włączony, a MAC uzupełniony — wysyła
+magic packet na porty 9 i 7. Wymaga, żeby broker/ioBroker był w tej samej podsieci albo
+żeby router przepuszczał rozgłoszenia.
 
 ## Licencja
 

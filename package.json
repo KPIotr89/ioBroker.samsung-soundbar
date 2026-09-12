@@ -1,6 +1,6 @@
 {
   "name": "iobroker.samsung-soundbar",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local control of Samsung soundbars (2024+ D/F series) over the IP-control JSON-RPC API, with a native MQTT bridge",
   "author": {
     "name": "Piotr Kalbarczyk",

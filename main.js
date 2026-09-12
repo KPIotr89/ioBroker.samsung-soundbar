@@ -8,11 +8,24 @@ const {
     BUTTONS,
     SOUND_MODES,
     INPUT_SOURCES,
+    CODECS,
     nameToNum,
     numToName,
 } = require('./lib/objects');
+const wol = require('./lib/wol');
 
-const STATE_KEYS = [ 'power', 'volume', 'mute', 'input', 'inputNum', 'soundMode', 'soundModeNum', 'codec' ];
+const STATE_KEYS = [
+    'power',
+    'volume',
+    'mute',
+    'input',
+    'inputNum',
+    'soundMode',
+    'soundModeNum',
+    'codec',
+    'codecNum',
+];
+const VOLUME_WRITE_DELAY = 200; // coalesce bursts from a Loxone slider/encoder
 const MAX_BACKOFF = 60000;
 
 class SamsungSoundbar extends utils.Adapter {
@@ -26,6 +39,8 @@ class SamsungSoundbar extends utils.Adapter {
         this.backoff = 0;
         this.lastState = {};
         this.unloaded = false;
+        this.volumeTimer = null;
+        this.pendingVolume = null;
 
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
@@ -48,6 +63,12 @@ class SamsungSoundbar extends utils.Adapter {
         }
 
         this.pollInterval = Math.max(2, Number(this.config.pollInterval) || 5) * 1000;
+        this.standbyInterval = Math.max(5, Number(this.config.pollIntervalStandby) || 30) * 1000;
+        this.maxVolume = Math.min(100, Math.max(1, Number(this.config.maxVolume) || 100));
+        if (this.maxVolume < 100) {
+            this.log.info(`Volume is capped at ${this.maxVolume}`);
+            await this.extendObjectAsync('device.volume', { common: { max: this.maxVolume } });
+        }
 
         this.api = new SoundbarApi({
             host,
@@ -103,7 +124,8 @@ class SamsungSoundbar extends utils.Adapter {
         if (this.pollTimer) {
             this.clearTimeout(this.pollTimer);
         }
-        this.pollTimer = this.setTimeout(() => this.poll(), delay === undefined ? this.pollInterval : delay);
+        const base = this.lastState.power === false ? this.standbyInterval : this.pollInterval;
+        this.pollTimer = this.setTimeout(() => this.poll(), delay === undefined ? base : delay);
     }
 
     async poll() {
@@ -156,6 +178,7 @@ class SamsungSoundbar extends utils.Adapter {
             ...state,
             inputNum: nameToNum(INPUT_SOURCES, state.input),
             soundModeNum: nameToNum(SOUND_MODES, state.soundMode),
+            codecNum: nameToNum(CODECS, state.codec),
         };
     }
 
@@ -179,9 +202,16 @@ class SamsungSoundbar extends utils.Adapter {
             }
             this.expected = null;
         }
+        if (state.codec && state.codecNum === -1 && this.lastState.codec !== state.codec) {
+            this.log.info(`Unknown codec name "${state.codec}" - please report it so it gets a number`);
+        }
+
+        const stamp = Math.round(Date.now() / 1000);
+        await this.setStateAsync('info.lastUpdate', { val: stamp, ack: true });
+
         this.lastState = { ...this.lastState, ...state };
         if (this.mqtt) {
-            this.mqtt.publishSnapshot(state);
+            this.mqtt.publishSnapshot({ ...state, lastUpdate: stamp });
         }
     }
 
@@ -195,17 +225,81 @@ class SamsungSoundbar extends utils.Adapter {
 
     // --------------------------------------------------------------- commands
 
+    /**
+     * Switch on. When the soundbar is in standby it closes port 1516, so the
+     * only way in is a Wake-on-LAN packet.
+     */
+    async powerOn(on) {
+        try {
+            await this.api.setPower(on);
+        } catch (e) {
+            const unreachable = e.code === 'NET' || e.code === 'HTTP' || e.code === 'TOKEN';
+            if (!on || !unreachable || !this.config.wolEnabled) {
+                throw e;
+            }
+            if (!wol.isValidMac(this.config.wolMac)) {
+                throw new Error('soundbar unreachable and no valid MAC for Wake-on-LAN configured');
+            }
+            await wol.wake(this.config.wolMac, { address: this.config.wolBroadcast || undefined });
+            this.log.info(`Soundbar unreachable - Wake-on-LAN packet sent to ${this.config.wolMac}`);
+        }
+    }
+
+    /**
+     * Coalesce volume writes: a Loxone slider or encoder produces a burst of
+     * values and the soundbar drops requests that arrive in parallel.
+     */
+    queueVolume(level) {
+        const wanted = Math.round(Number(level));
+        if (!Number.isFinite(wanted)) {
+            throw new Error(`volume "${level}" is not a number`);
+        }
+        const clamped = Math.min(this.maxVolume, Math.max(0, wanted));
+        if (clamped !== wanted) {
+            this.log.info(`Volume ${wanted} clamped to ${clamped}`);
+        }
+        this.pendingVolume = clamped;
+
+        if (this.volumeTimer) {
+            return;
+        }
+        this.volumeTimer = this.setTimeout(async () => {
+            this.volumeTimer = null;
+            const value = this.pendingVolume;
+            this.pendingVolume = null;
+            try {
+                await this.api.setVolume(value);
+                this.scheduleRefresh();
+            } catch (e) {
+                this.log.warn(`Setting volume to ${value} failed: ${e.message}`);
+                this.scheduleRefresh();
+            }
+        }, VOLUME_WRITE_DELAY);
+    }
+
     async applyCommand(key, value) {
         if (!this.api) {
             throw new Error('adapter not ready');
         }
         switch (key) {
             case 'power':
-                await this.api.setPower(value);
+                await this.powerOn(value);
                 break;
             case 'volume':
-                await this.api.setVolume(value);
+                this.queueVolume(value);
                 break;
+            case 'volumeStep': {
+                const delta = Number(value);
+                if (!Number.isFinite(delta) || !delta) {
+                    throw new Error(`volumeStep "${value}" is not a non-zero number`);
+                }
+                const current = this.pendingVolume !== null ? this.pendingVolume : this.lastState.volume;
+                if (typeof current !== 'number') {
+                    throw new Error('current volume unknown yet');
+                }
+                this.queueVolume(current + delta);
+                break;
+            }
             case 'mute':
                 if (value === 'toggle') {
                     await this.api.sendKey('MUTE');
@@ -261,6 +355,11 @@ class SamsungSoundbar extends utils.Adapter {
                 await this.applyCommand('remoteKey', BUTTONS[local]);
                 return;
             }
+            if (local === 'control.volumeStep') {
+                await this.applyCommand('volumeStep', state.val);
+                await this.setStateAsync(local, { val: state.val, ack: true });
+                return;
+            }
             if (local === 'control.remoteKey') {
                 await this.applyCommand('remoteKey', state.val);
                 await this.setStateAsync(local, { val: state.val, ack: true });
@@ -291,6 +390,9 @@ class SamsungSoundbar extends utils.Adapter {
             }
             if (this.refreshTimer) {
                 this.clearTimeout(this.refreshTimer);
+            }
+            if (this.volumeTimer) {
+                this.clearTimeout(this.volumeTimer);
             }
             if (this.mqttWatch) {
                 this.clearInterval(this.mqttWatch);

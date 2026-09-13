@@ -8,10 +8,10 @@ const {
     BUTTONS,
     SOUND_MODES,
     INPUT_SOURCES,
-    CODECS,
     nameToNum,
     numToName,
 } = require('./lib/objects');
+const { classifyCodec } = require('./lib/codecs');
 const wol = require('./lib/wol');
 
 const STATE_KEYS = [
@@ -24,6 +24,8 @@ const STATE_KEYS = [
     'soundModeNum',
     'codec',
     'codecNum',
+    'codecFamily',
+    'atmos',
 ];
 const VOLUME_WRITE_DELAY = 200; // coalesce bursts from a Loxone slider/encoder
 const MAX_BACKOFF = 60000;
@@ -174,11 +176,14 @@ class SamsungSoundbar extends utils.Adapter {
 
     /** Mirror both enums as numbers - Loxone handles analog values far better. */
     static withNumericEnums(state) {
+        const codec = classifyCodec(state.codec);
         return {
             ...state,
             inputNum: nameToNum(INPUT_SOURCES, state.input),
             soundModeNum: nameToNum(SOUND_MODES, state.soundMode),
-            codecNum: nameToNum(CODECS, state.codec),
+            codecNum: codec.num,
+            codecFamily: codec.family || '',
+            atmos: codec.atmos,
         };
     }
 
@@ -202,8 +207,8 @@ class SamsungSoundbar extends utils.Adapter {
             }
             this.expected = null;
         }
-        if (state.codec && state.codecNum === -1 && this.lastState.codec !== state.codec) {
-            this.log.info(`Unknown codec name "${state.codec}" - please report it so it gets a number`);
+        if (state.codecNum === 10 && this.lastState.codec !== state.codec) {
+            this.log.info(`Codec "${state.codec}" matches no known family - please report it`);
         }
 
         const stamp = Math.round(Date.now() / 1000);

@@ -8,7 +8,8 @@
  */
 
 const { MqttBridge } = require('../lib/mqtt-bridge');
-const { nameToNum, numToName, SOUND_MODES, INPUT_SOURCES, CODECS } = require('../lib/objects');
+const { nameToNum, numToName, SOUND_MODES, INPUT_SOURCES } = require('../lib/objects');
+const { classifyCodec } = require('../lib/codecs');
 const wol = require('../lib/wol');
 
 const log = { debug() {}, info() {}, warn() {}, error() {} };
@@ -124,8 +125,13 @@ function makeBridge(config) {
     check('positive step', commands[0][0] === 'volumeStep' && commands[0][1] === 3);
     check('negative step', commands[1][1] === -2);
     check('explicit plus sign', commands[2][1] === 4);
-    check('codec numbering stable', nameToNum(CODECS, 'PCM') === 0 && numToName(CODECS, 4) === 'DOLBY_ATMOS');
-    check('unknown codec -> -1', nameToNum(CODECS, 'SOMETHING_NEW') === -1);
+    check('atmos over earc recognised', classifyCodec('MAT_PCM_ATMOS').num === 4 && classifyCodec('MAT_PCM_ATMOS').atmos === true);
+    check('plain pcm recognised', classifyCodec('PCM').num === 0 && classifyCodec('PCM').atmos === false);
+    check('dolby digital plus variants', classifyCodec('DOLBY_DIGITAL_PLUS').num === 2 && classifyCodec('EAC3').num === 2);
+    check('dts variants', classifyCodec('DTS_X').num === 7 && classifyCodec('DTS_HD_MA').num === 6 && classifyCodec('DTS').num === 5);
+    check('mat without atmos is truehd', classifyCodec('MAT_PCM').num === 3);
+    check('unmatched name -> OTHER', classifyCodec('SOMETHING_NEW').num === 10);
+    check('empty codec -> -1', classifyCodec('').num === -1 && classifyCodec(undefined).num === -1);
 }
 
 // ---- wake-on-lan packet -----------------------------------------------------

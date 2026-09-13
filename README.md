@@ -47,8 +47,10 @@ Albo w Adminie: *Adaptery → Instaluj z własnego URL → adres repozytorium Gi
 | `device.inputNum` | number | rw | 0 = `E_ARC`, 1 = `HDMI_IN1`, 2 = `HDMI_IN2`, 3 = `D_IN`, 4 = `BT`, −1 = nieznane |
 | `device.soundMode` | string | rw | `STANDARD`, `SURROUND`, `GAME`, `ADAPTIVE` |
 | `device.soundModeNum` | number | rw | 0 = `STANDARD`, 1 = `SURROUND`, 2 = `GAME`, 3 = `ADAPTIVE`, −1 = nieznane |
-| `device.codec` | string | r | np. `PCM`, `DOLBY_ATMOS` |
-| `device.codecNum` | number | r | 0 = `PCM`, 1 = `DOLBY_DIGITAL`, 2 = `DOLBY_DIGITAL_PLUS`, 3 = `DOLBY_TRUEHD`, 4 = `DOLBY_ATMOS`, 5 = `DTS`, 6 = `DTS_HD`, 7 = `DTS_X`, 8 = `AAC`, 9 = `MP3`, −1 = nieznany (trafia do logu) |
+| `device.codec` | string | r | surowa nazwa z urządzenia, np. `MAT_PCM_ATMOS`, `PCM` |
+| `device.codecFamily` | string | r | rodzina po klasyfikacji, np. `DOLBY_ATMOS` |
+| `device.codecNum` | number | r | 0 = `PCM`, 1 = `DOLBY_DIGITAL`, 2 = `DOLBY_DIGITAL_PLUS`, 3 = `DOLBY_TRUEHD`, 4 = `DOLBY_ATMOS`, 5 = `DTS`, 6 = `DTS_HD`, 7 = `DTS_X`, 8 = `AAC`, 9 = `MP3`, 10 = `OTHER` (trafia do logu), −1 = brak |
+| `device.atmos` | boolean | r | strumień Atmos — gotowa ikona do wizualizacji |
 | `control.volumeStep` | number | w | zmiana względna, np. `3` albo `-2` |
 | `control.remoteKey` | string | w | `VOL_UP`, `VOL_DOWN`, `MUTE`, `WOOFER_PLUS`, `WOOFER_MINUS` |
 | `control.volumeUp` / `volumeDown` / `muteToggle` / `wooferUp` / `wooferDown` | button | w | skróty do `remoteKey` |
@@ -72,8 +74,10 @@ samsung/soundbar/input        E_ARC
 samsung/soundbar/inputNum     0
 samsung/soundbar/soundMode    ADAPTIVE
 samsung/soundbar/soundModeNum 3
-samsung/soundbar/codec        PCM
-samsung/soundbar/codecNum     0
+samsung/soundbar/codec        MAT_PCM_ATMOS
+samsung/soundbar/codecFamily  DOLBY_ATMOS
+samsung/soundbar/codecNum     4
+samsung/soundbar/atmos        true
 samsung/soundbar/lastUpdate   1757707200
 samsung/soundbar/state        {"power":true,"volume":11,...}   # opcjonalnie
 ```
@@ -143,6 +147,10 @@ curl -sk -X POST https://192.168.0.214:1516/ \
   zostało przy starej wartości
 - nazwy wejść HDMI to `HDMI_IN1` / `HDMI_IN2` — `HDMI1`, `HDMI2`, `WIFI`, `USB`, `OPTICAL`
   są odrzucane
+
+Nazwy kodeków są złożone i zależą od kontenera — po eARC Atmos przychodzi jako
+`MAT_PCM_ATMOS` (Dolby MAT), nie `DOLBY_ATMOS`. Dlatego adapter klasyfikuje nazwę
+wzorcem zamiast trzymać sztywną tabelę, a surowy string zostaje w `device.codec`.
 
 Metody: `createAccessToken`, `powerControl`, `getVolume`, `volumeControl`, `getMute`,
 `muteControl`, `inputSelectControl`, `soundModeControl`, `remoteKeyControl`, `getCodec`,

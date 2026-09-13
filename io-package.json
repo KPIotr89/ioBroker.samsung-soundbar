@@ -1,8 +1,13 @@
 {
   "common": {
     "name": "samsung-soundbar",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "news": {
+      "0.3.1": {
+        "en": "Codec names are classified by pattern (MAT_PCM_ATMOS and friends) instead of a fixed table; new atmos and codecFamily states",
+        "de": "Codec-Namen werden per Muster klassifiziert statt per fester Tabelle; neue States atmos und codecFamily",
+        "pl": "Nazwy kodekow klasyfikowane wzorcem (MAT_PCM_ATMOS i pochodne) zamiast sztywnej tabeli; nowe stany atmos i codecFamily"
+      },
       "0.3.0": {
         "en": "Volume write throttling and max volume cap, adaptive polling, info.lastUpdate, codecNum, volumeStep, Wake-on-LAN",
         "de": "Gedrosselte Lautstaerke-Schreibvorgaenge und Maximalwert, adaptives Polling, info.lastUpdate, codecNum, volumeStep, Wake-on-LAN",

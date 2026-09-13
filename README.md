@@ -49,7 +49,7 @@ Albo w Adminie: *Adaptery → Instaluj z własnego URL → adres repozytorium Gi
 | `device.soundModeNum` | number | rw | 0 = `STANDARD`, 1 = `SURROUND`, 2 = `GAME`, 3 = `ADAPTIVE`, −1 = nieznane |
 | `device.codec` | string | r | surowa nazwa z urządzenia, np. `MAT_PCM_ATMOS`, `PCM` |
 | `device.codecFamily` | string | r | rodzina po klasyfikacji, np. `DOLBY_ATMOS` |
-| `device.codecNum` | number | r | 0 = `PCM`, 1 = `DOLBY_DIGITAL`, 2 = `DOLBY_DIGITAL_PLUS`, 3 = `DOLBY_TRUEHD`, 4 = `DOLBY_ATMOS`, 5 = `DTS`, 6 = `DTS_HD`, 7 = `DTS_X`, 8 = `AAC`, 9 = `MP3`, 10 = `OTHER` (trafia do logu), −1 = brak |
+| `device.codecNum` | number | r | 0 = `PCM`, 1 = `DOLBY_DIGITAL`, 2 = `DOLBY_DIGITAL_PLUS`, 3 = `DOLBY_TRUEHD`, 4 = `DOLBY_ATMOS`, 5 = `DTS`, 6 = `DTS_HD`, 7 = `DTS_X`, 8 = `AAC`, 9 = `MP3`, 10 = `OTHER` (trafia do logu), 11 = `DOLBY_MAT`, −1 = brak |
 | `device.atmos` | boolean | r | strumień Atmos — gotowa ikona do wizualizacji |
 | `control.volumeStep` | number | w | zmiana względna, np. `3` albo `-2` |
 | `control.remoteKey` | string | w | `VOL_UP`, `VOL_DOWN`, `MUTE`, `WOOFER_PLUS`, `WOOFER_MINUS` |
@@ -151,6 +151,10 @@ curl -sk -X POST https://192.168.0.214:1516/ \
 Nazwy kodeków są złożone i zależą od kontenera — po eARC Atmos przychodzi jako
 `MAT_PCM_ATMOS` (Dolby MAT), nie `DOLBY_ATMOS`. Dlatego adapter klasyfikuje nazwę
 wzorcem zamiast trzymać sztywną tabelę, a surowy string zostaje w `device.codec`.
+
+Apple TV z włączonym Atmosem utrzymuje stałe łącze Dolby MAT, więc materiał 5.1 bez
+Atmosa dociera jako `MAT_PCM` — to wielokanałowy PCM w kontenerze MAT, nie TrueHD.
+Stąd osobna rodzina `DOLBY_MAT` (11).
 
 Metody: `createAccessToken`, `powerControl`, `getVolume`, `volumeControl`, `getMute`,
 `muteControl`, `inputSelectControl`, `soundModeControl`, `remoteKeyControl`, `getCodec`,

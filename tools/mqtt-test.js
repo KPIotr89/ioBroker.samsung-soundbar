@@ -129,7 +129,8 @@ function makeBridge(config) {
     check('plain pcm recognised', classifyCodec('PCM').num === 0 && classifyCodec('PCM').atmos === false);
     check('dolby digital plus variants', classifyCodec('DOLBY_DIGITAL_PLUS').num === 2 && classifyCodec('EAC3').num === 2);
     check('dts variants', classifyCodec('DTS_X').num === 7 && classifyCodec('DTS_HD_MA').num === 6 && classifyCodec('DTS').num === 5);
-    check('mat without atmos is truehd', classifyCodec('MAT_PCM').num === 3);
+    check('mat without atmos is dolby mat, not truehd', classifyCodec('MAT_PCM').num === 11);
+    check('real truehd still matches', classifyCodec('DOLBY_TRUEHD').num === 3 && classifyCodec('TRUE_HD').num === 3);
     check('unmatched name -> OTHER', classifyCodec('SOMETHING_NEW').num === 10);
     check('empty codec -> -1', classifyCodec('').num === -1 && classifyCodec(undefined).num === -1);
 }
